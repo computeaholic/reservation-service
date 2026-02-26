@@ -1,4 +1,0 @@
-{
-  "include": ["src", "alembic"],
-  "extraPaths": ["src"]
-}

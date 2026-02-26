@@ -6,11 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "reservation-service"
 version = "1.0.0"
 requires-python = ">=3.12,<3.13"
-dependencies = [
-  "sqlalchemy==2.0.36",
-  "alembic==1.14.0",
-  "psycopg==3.2.3"
-]
+dependencies = []
 
 [project.optional-dependencies]
 dev = [
@@ -21,9 +17,6 @@ dev = [
   "pytest-cov==6.0.0",
   "pre-commit==4.0.1"
 ]
-
-[tool.setuptools.packages.find]
-where = ["src"]
 
 [tool.black]
 line-length = 100
@@ -39,13 +32,10 @@ select = ["E", "F", "I", "B", "UP"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-ignore_missing_imports = true
-mypy_path = "src"
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_unreachable = true
 show_error_codes = true
-exclude = "^alembic/"
 
 [tool.pytest.ini_options]
 addopts = "-q -W error --strict-config --strict-markers --maxfail=1 --cov=. --cov-report=term-missing --cov-fail-under=80"
