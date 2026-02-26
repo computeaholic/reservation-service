@@ -1,19 +1,28 @@
-FROM python:3.12.8-slim-bookworm
-
-WORKDIR /app
+FROM python:3.12-alpine@sha256:2d91681153dd4b8cdb52d4fd34a17b9edbafa4dd3086143cfd4b6c3a84c1acb0
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-COPY pyproject.toml /app/pyproject.toml
+RUN apk update \
+  && apk upgrade \
+  && rm -rf /var/cache/apk/*
 
-RUN python -m pip install --no-cache-dir --upgrade pip==24.3.1 && \
-    python -m pip install --no-cache-dir \
-      black==24.10.0 \
-      ruff==0.8.4 \
-      mypy==1.13.0 \
-      pytest==8.3.4 \
-      pytest-cov==6.0.0 \
-      pre-commit==4.0.1
+WORKDIR /app
 
-CMD ["bash"]
+COPY pyproject.toml ./
+COPY src ./src
+COPY alembic ./alembic
+COPY alembic.ini ./
+
+RUN pip install --upgrade pip \
+  && pip install .[dev] \
+  && pip cache purge
+
+COPY . .
+
+RUN adduser -D appuser \
+  && chown -R appuser:appuser /app
+
+USER appuser
+
+CMD ["python", "-m", "reservation_service"]

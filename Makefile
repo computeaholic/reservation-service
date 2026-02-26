@@ -1,4 +1,4 @@
-.PHONY: fmt lint typecheck test coverage up down migrate rollback run
+.PHONY: fmt lint typecheck test coverage up down migrate rollback run scan
 
 fmt:
 	python -m black .
@@ -29,3 +29,7 @@ rollback:
 
 run:
 	docker compose up --build app
+
+scan:
+	docker build -t reservation-service .
+	trivy image reservation-service
