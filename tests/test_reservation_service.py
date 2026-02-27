@@ -13,7 +13,13 @@ from infrastructure.models.reservation import Reservation
 from services.reservation_service import cancel_reservation, confirm_reservation, create_reservation
 
 
-def _add_inventory(session_factory, *, sku: str, total_quantity: int, reserved_quantity: int = 0) -> None:
+def _add_inventory(
+    session_factory,
+    *,
+    sku: str,
+    total_quantity: int,
+    reserved_quantity: int = 0,
+) -> None:
     with session_factory() as session:
         with session.begin():
             inventory = InventoryItem(
@@ -48,13 +54,19 @@ def test_idempotency_replay(session_factory) -> None:
     assert first.id == second.id
 
     with session_factory() as session:
-        reservation_count = session.execute(
-            select(Reservation).where(Reservation.idempotency_key == idempotency_key)
-        ).scalars().all()
+        reservation_count = (
+            session.execute(
+                select(Reservation).where(Reservation.idempotency_key == idempotency_key)
+            )
+            .scalars()
+            .all()
+        )
     assert len(reservation_count) == 1
 
     with session_factory() as session:
-        inventory = session.execute(select(InventoryItem).where(InventoryItem.sku == sku)).scalar_one()
+        inventory = session.execute(
+            select(InventoryItem).where(InventoryItem.sku == sku)
+        ).scalar_one()
     assert inventory.reserved_quantity == 4
 
 
@@ -72,7 +84,9 @@ def test_create_reservation_rollback_on_failure(session_factory) -> None:
         ).scalar_one_or_none()
         assert reservation is None
 
-        inventory = session.execute(select(InventoryItem).where(InventoryItem.sku == sku)).scalar_one()
+        inventory = session.execute(
+            select(InventoryItem).where(InventoryItem.sku == sku)
+        ).scalar_one()
         assert inventory.reserved_quantity == 0
 
 
@@ -81,7 +95,12 @@ def test_cancel_restores_inventory_once(session_factory) -> None:
     _add_inventory(session_factory, sku=sku, total_quantity=10)
 
     with session_factory() as session:
-        created = create_reservation(session, sku=sku, quantity=6, idempotency_key=f"idem-{uuid4()}")
+        created = create_reservation(
+            session,
+            sku=sku,
+            quantity=6,
+            idempotency_key=f"idem-{uuid4()}",
+        )
 
     with session_factory() as session:
         first_cancel = cancel_reservation(session, created.id)
@@ -92,7 +111,9 @@ def test_cancel_restores_inventory_once(session_factory) -> None:
     assert second_cancel.status == ReservationStatus.CANCELED
 
     with session_factory() as session:
-        inventory = session.execute(select(InventoryItem).where(InventoryItem.sku == sku)).scalar_one()
+        inventory = session.execute(
+            select(InventoryItem).where(InventoryItem.sku == sku)
+        ).scalar_one()
     assert inventory.reserved_quantity == 0
 
 
@@ -254,7 +275,9 @@ def test_negative_inventory_guard_constraint(session_factory) -> None:
     _add_inventory(session_factory, sku=sku, total_quantity=10, reserved_quantity=0)
 
     with session_factory() as session:
-        inventory = session.execute(select(InventoryItem).where(InventoryItem.sku == sku)).scalar_one()
+        inventory = session.execute(
+            select(InventoryItem).where(InventoryItem.sku == sku)
+        ).scalar_one()
         inventory.reserved_quantity = -1
 
         with pytest.raises(IntegrityError):

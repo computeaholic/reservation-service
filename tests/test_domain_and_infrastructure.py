@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -11,7 +11,7 @@ from infrastructure.db.session import create_engine_from_env, create_session_fac
 
 
 def _aggregate(status: ReservationStatus) -> Reservation:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return Reservation(
         id=uuid4(),
         sku="sku-domain",

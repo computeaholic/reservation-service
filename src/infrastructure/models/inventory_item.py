@@ -12,8 +12,14 @@ class InventoryItem(Base):
     __tablename__ = "inventory_items"
     __table_args__ = (
         UniqueConstraint("sku", name="uq_inventory_items_sku"),
-        CheckConstraint("total_quantity >= 0", name="ck_inventory_items_total_quantity_non_negative"),
-        CheckConstraint("reserved_quantity >= 0", name="ck_inventory_items_reserved_quantity_non_negative"),
+        CheckConstraint(
+            "total_quantity >= 0",
+            name="ck_inventory_items_total_quantity_non_negative",
+        ),
+        CheckConstraint(
+            "reserved_quantity >= 0",
+            name="ck_inventory_items_reserved_quantity_non_negative",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
