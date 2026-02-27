@@ -36,3 +36,4 @@ pgdata/
 *.log
 
 Thumbs.db
+*.pyc

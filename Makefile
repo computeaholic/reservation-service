@@ -31,5 +31,5 @@ run:
 	docker compose up --build app
 
 scan:
-	docker build -t reservation-service .
-	trivy image reservation-service
+	docker build -t reservation-service:verify .
+	docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.49.1 image --severity HIGH,CRITICAL reservation-service:verify
