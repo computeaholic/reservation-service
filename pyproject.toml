@@ -17,6 +17,8 @@ dev = [
   "black==24.10.0",
   "ruff==0.8.4",
   "mypy==1.13.0",
+  "bandit==1.7.9",
+  "detect-secrets==1.5.0",
   "pytest==8.3.4",
   "pytest-cov==6.0.0",
   "pre-commit==4.0.1"
@@ -41,6 +43,7 @@ python_version = "3.12"
 strict = true
 ignore_missing_imports = true
 mypy_path = "src"
+files = ["src"]
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_unreachable = true
