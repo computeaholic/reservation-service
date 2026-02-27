@@ -15,7 +15,7 @@ format: ## Format code and apply safe Ruff fixes
 lint: ## Run static quality and security checks
 	python -m ruff check .
 	python -m mypy
-	python -m bandit -r src
+	PYTHONWARNINGS=default python -m bandit -r src
 
 typecheck: ## Run mypy type checks
 	python -m mypy .
