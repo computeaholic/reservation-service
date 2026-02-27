@@ -1,9 +1,12 @@
 name: ci
 
 on:
-  pull_request:
   push:
-    branches-ignore:
+    branches:
+      - main
+      - feature/**
+  pull_request:
+    branches:
       - main
 
 jobs:
