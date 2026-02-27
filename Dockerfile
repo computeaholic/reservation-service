@@ -32,11 +32,12 @@ RUN pip install --upgrade pip \
   && rm -rf /wheels \
   && pip cache purge
 
-COPY . .
+COPY alembic ./alembic
+COPY alembic.ini ./
 
 RUN adduser -D appuser \
   && chown -R appuser:appuser /app
 
 USER appuser
 
-CMD ["python", "-m", "reservation_service"]
+CMD ["sh", "-c", "python -m reservation_service"]

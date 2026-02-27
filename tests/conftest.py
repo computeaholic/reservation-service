@@ -15,11 +15,14 @@ def engine():
     if not database_url:
         raise RuntimeError("DATABASE_URL is required for Postgres-backed tests")
 
-    db_engine = create_engine(database_url, pool_pre_ping=True)
+    db_engine = create_engine(
+        database_url,
+        pool_pre_ping=True,
+        isolation_level="READ COMMITTED",
+    )
     Base.metadata.drop_all(db_engine)
     Base.metadata.create_all(db_engine)
     yield db_engine
-    Base.metadata.drop_all(db_engine)
     db_engine.dispose()
 
 
@@ -27,11 +30,19 @@ def engine():
 def session_factory(engine):
     connection = engine.connect()
     transaction = connection.begin()
-    factory = sessionmaker(bind=connection, class_=Session, join_transaction_mode="create_savepoint")
+    # Each test session runs inside a nested SAVEPOINT so service functions can
+    # call `session.begin()` while preserving outer-test rollback isolation.
+    factory = sessionmaker(
+        bind=connection,
+        class_=Session,
+        join_transaction_mode="create_savepoint",
+    )
 
     try:
         yield factory
     finally:
+        # The outer transaction rollback guarantees deterministic cleanup with
+        # no cross-test leakage, even when tests create/commit nested units.
         transaction.rollback()
         connection.close()
 

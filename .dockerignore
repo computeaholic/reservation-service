@@ -1,0 +1,25 @@
+# VCS
+.git
+.gitignore
+
+# Python caches and test artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local virtual environments
+.venv/
+venv/
+
+# Local editor/system files
+.DS_Store
+.vscode/
+.idea/
+
+# Local runtime data
+docker-data/
+pgdata/
