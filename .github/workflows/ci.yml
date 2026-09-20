@@ -57,6 +57,8 @@ jobs:
         run: make lint
 
       - name: Detect secrets
+        env:
+          PYTHONWARNINGS: default
         run: make secret-check
 
       - name: Validate migrations
