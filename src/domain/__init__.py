@@ -1,23 +1,21 @@
 from .exceptions import (
-    DatabaseUnavailable,
-    DuplicateIdempotencyKey,
+    IdempotencyConflict,
     IllegalStateTransition,
     InsufficientInventory,
+    InvalidQuantity,
     ReservationNotFound,
     SkuNotFound,
-    TimeoutError,
 )
 from .reservation_aggregate import Reservation
 from .reservation_status import ReservationStatus
 
 __all__ = [
-    "DatabaseUnavailable",
-    "DuplicateIdempotencyKey",
+    "IdempotencyConflict",
     "IllegalStateTransition",
     "InsufficientInventory",
+    "InvalidQuantity",
     "Reservation",
     "ReservationNotFound",
     "ReservationStatus",
     "SkuNotFound",
-    "TimeoutError",
 ]

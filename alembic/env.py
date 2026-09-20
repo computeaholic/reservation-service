@@ -1,6 +1,8 @@
 # mypy: ignore-errors
+# mypy: ignore-errors
 # ruff: noqa: I001
 
+import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -10,7 +12,14 @@ from infrastructure.db.base import Base
 from infrastructure.models.inventory_item import InventoryItem  # noqa: F401
 from infrastructure.models.reservation import Reservation  # noqa: F401
 
+_DEFAULT_ALEMBIC_URL = "postgresql+psycopg://postgres:postgres@localhost:5432/reservation_test"
+
 config = context.config
+
+database_url = os.getenv("DATABASE_URL")
+configured_url = config.get_main_option("sqlalchemy.url")
+if database_url and configured_url == _DEFAULT_ALEMBIC_URL:
+    config.set_main_option("sqlalchemy.url", database_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

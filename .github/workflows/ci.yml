@@ -28,6 +28,7 @@ jobs:
           --health-retries=5
     env:
       PYTHONWARNINGS: error
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/reservation_test
 
     steps:
       - name: Checkout
@@ -49,6 +50,9 @@ jobs:
 
       - name: Lint
         run: make lint
+
+      - name: Validate migrations
+        run: DATABASE_URL=${DATABASE_URL} PYTHONPATH=src python -m pytest tests/test_migrations.py --no-cov
 
       - name: Test with coverage threshold
         run: make test

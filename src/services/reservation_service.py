@@ -1,9 +1,17 @@
 from uuid import UUID
 
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from domain.exceptions import IllegalStateTransition, InsufficientInventory, ReservationNotFound
+from domain.exceptions import (
+    IdempotencyConflict,
+    IllegalStateTransition,
+    InsufficientInventory,
+    InvalidQuantity,
+    ReservationNotFound,
+    SkuNotFound,
+)
 from domain.reservation_aggregate import Reservation as ReservationAggregate
 from domain.reservation_status import ReservationStatus
 from infrastructure.models.inventory_item import InventoryItem
@@ -22,6 +30,44 @@ def _to_aggregate(model: Reservation) -> ReservationAggregate:
     )
 
 
+def _validate_quantity(quantity: int) -> None:
+    if quantity <= 0:
+        raise InvalidQuantity("Quantity must be greater than zero")
+
+
+def _get_reservation_by_idempotency_key(
+    session: Session,
+    *,
+    idempotency_key: str,
+) -> Reservation | None:
+    return session.execute(
+        select(Reservation).where(Reservation.idempotency_key == idempotency_key)
+    ).scalar_one_or_none()
+
+
+def _assert_matching_idempotent_request(
+    reservation: Reservation,
+    *,
+    sku: str,
+    quantity: int,
+) -> None:
+    if reservation.sku != sku or reservation.quantity != quantity:
+        raise IdempotencyConflict(
+            "Idempotency key already used for a different reservation request"
+        )
+
+
+def _get_locked_reservation(session: Session, reservation_id: UUID) -> Reservation:
+    reservation = session.execute(
+        select(Reservation)
+        .where(Reservation.id == reservation_id)
+        .with_for_update()
+    ).scalar_one_or_none()
+    if reservation is None:
+        raise ReservationNotFound("Reservation not found")
+    return reservation
+
+
 def create_reservation(
     session: Session,
     *,
@@ -30,10 +76,35 @@ def create_reservation(
     idempotency_key: str,
 ) -> ReservationAggregate:
     with session.begin():
-        existing = session.execute(
-            select(Reservation).where(Reservation.idempotency_key == idempotency_key)
-        ).scalar_one_or_none()
+        _validate_quantity(quantity)
+
+        existing = _get_reservation_by_idempotency_key(
+            session,
+            idempotency_key=idempotency_key,
+        )
         if existing is not None:
+            _assert_matching_idempotent_request(existing, sku=sku, quantity=quantity)
+            return _to_aggregate(existing)
+
+        reservation = Reservation(
+            sku=sku,
+            quantity=quantity,
+            status=ReservationStatus.ACTIVE.value,
+            idempotency_key=idempotency_key,
+        )
+
+        try:
+            with session.begin_nested():
+                session.add(reservation)
+                session.flush()
+        except IntegrityError:
+            existing = _get_reservation_by_idempotency_key(
+                session,
+                idempotency_key=idempotency_key,
+            )
+            if existing is None:
+                raise
+            _assert_matching_idempotent_request(existing, sku=sku, quantity=quantity)
             return _to_aggregate(existing)
 
         inventory_update = (
@@ -50,25 +121,15 @@ def create_reservation(
                 select(InventoryItem.id).where(InventoryItem.sku == sku)
             ).scalar_one_or_none()
             if sku_exists is None:
-                raise ReservationNotFound("SKU not found")
+                raise SkuNotFound("SKU not found")
             raise InsufficientInventory("Insufficient inventory")
 
-        reservation = Reservation(
-            sku=sku,
-            quantity=quantity,
-            status=ReservationStatus.ACTIVE.value,
-            idempotency_key=idempotency_key,
-        )
-        session.add(reservation)
-        session.flush()
         return _to_aggregate(reservation)
 
 
 def confirm_reservation(session: Session, reservation_id: UUID) -> ReservationAggregate:
     with session.begin():
-        reservation = session.get(Reservation, reservation_id)
-        if reservation is None:
-            raise ReservationNotFound("Reservation not found")
+        reservation = _get_locked_reservation(session, reservation_id)
 
         if reservation.status == ReservationStatus.CONFIRMED.value:
             return _to_aggregate(reservation)
@@ -83,9 +144,7 @@ def confirm_reservation(session: Session, reservation_id: UUID) -> ReservationAg
 
 def cancel_reservation(session: Session, reservation_id: UUID) -> ReservationAggregate:
     with session.begin():
-        reservation = session.get(Reservation, reservation_id)
-        if reservation is None:
-            raise ReservationNotFound("Reservation not found")
+        reservation = _get_locked_reservation(session, reservation_id)
 
         if reservation.status == ReservationStatus.CANCELED.value:
             return _to_aggregate(reservation)
