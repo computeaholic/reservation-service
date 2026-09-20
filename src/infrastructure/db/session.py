@@ -3,9 +3,7 @@ import os
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-_DEFAULT_DATABASE_URL = (
-    "postgresql+psycopg://postgres:postgres@localhost:5432/reservation_test"
-)
+_DEFAULT_DATABASE_URL = "postgresql+psycopg://postgres@localhost:5432/reservation_test"
 
 
 def create_engine_from_env(database_url: str | None = None) -> Engine:

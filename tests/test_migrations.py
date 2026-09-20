@@ -1,9 +1,9 @@
 from uuid import uuid4
 
-from alembic import command
-from alembic.config import Config
 from sqlalchemy import create_engine, inspect, text
 
+from alembic import command
+from alembic.config import Config
 from infrastructure.db.session import create_engine_from_env
 
 

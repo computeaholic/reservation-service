@@ -1,10 +1,10 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help fmt format lint typecheck precommit test coverage up down migrate rollback run scan
+.PHONY: help fmt format lint typecheck precommit validate-hooks test coverage up down migrate rollback scan
 
-PYTHON ?= python3
-DATABASE_URL ?= postgresql+psycopg://postgres:postgres@localhost:5432/reservation_test
-COMPOSE_DATABASE_URL ?= postgresql+psycopg://postgres:postgres@postgres:5432/reservation_test
+PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
+DATABASE_URL ?= postgresql+psycopg://postgres@localhost:5432/reservation_test
+COMPOSE_DATABASE_URL ?= postgresql+psycopg://postgres@postgres:5432/reservation_test
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "%-12s %s\n", $$1, $$2}'
@@ -28,7 +28,7 @@ precommit: ## Install pre-commit hooks
 	$(PYTHON) -m pre_commit install
 
 validate-hooks: ## Run the validation hooks without branch-policy enforcement
-	SKIP=block-main-branch-commit $(PYTHON) -m pre_commit run --all-files
+	PATH="$(PWD)/.venv/bin:$$PATH" SKIP=block-main-branch-commit $(PYTHON) -m pre_commit run --all-files
 
 test: ## Run Postgres-backed test suite with coverage gates
 	DATABASE_URL=$(DATABASE_URL) PYTHONPATH=src $(PYTHON) -m pytest
@@ -48,11 +48,6 @@ migrate: ## Apply latest Alembic migration in app container
 
 rollback: ## Roll back one Alembic migration in app container
 	docker compose run --rm -e DATABASE_URL=$(COMPOSE_DATABASE_URL) dev alembic downgrade -1
-
-run: ## Run the full validation suite against the local Postgres database
-	$(MAKE) lint
-	$(MAKE) test
-	$(MAKE) validate-hooks
 
 scan: ## Scan built image for HIGH/CRITICAL vulnerabilities
 	docker build -t reservation-service:verify .

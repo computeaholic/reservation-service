@@ -142,7 +142,9 @@ def test_create_reservation_rejects_conflicting_idempotency_key_for_sku(session_
     assert _inventory_for_sku(session_factory, conflicting_sku).reserved_quantity == 0
 
 
-def test_create_reservation_rejects_conflicting_idempotency_key_for_quantity(session_factory) -> None:
+def test_create_reservation_rejects_conflicting_idempotency_key_for_quantity(
+    session_factory,
+) -> None:
     sku = f"sku-idem-qty-{uuid4()}"
     idempotency_key = f"idem-{uuid4()}"
     _add_inventory(session_factory, sku=sku, total_quantity=10)
@@ -437,9 +439,13 @@ def test_concurrent_equivalent_idempotent_create_returns_same_reservation(engine
         inventory = verify_session.execute(
             select(InventoryItem).where(InventoryItem.sku == sku)
         ).scalar_one()
-        reservations = verify_session.execute(
-            select(Reservation).where(Reservation.idempotency_key == idempotency_key)
-        ).scalars().all()
+        reservations = (
+            verify_session.execute(
+                select(Reservation).where(Reservation.idempotency_key == idempotency_key)
+            )
+            .scalars()
+            .all()
+        )
 
     assert inventory.reserved_quantity == 4
     assert len(reservations) == 1

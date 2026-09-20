@@ -1,11 +1,10 @@
 import os
 
 import pytest
-from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from infrastructure.db.session import create_engine_from_env
 from infrastructure.db.base import Base
+from infrastructure.db.session import create_engine_from_env
 from infrastructure.models.inventory_item import InventoryItem  # noqa: F401
 from infrastructure.models.reservation import Reservation  # noqa: F401
 

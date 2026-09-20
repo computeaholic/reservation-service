@@ -59,9 +59,7 @@ def _assert_matching_idempotent_request(
 
 def _get_locked_reservation(session: Session, reservation_id: UUID) -> Reservation:
     reservation = session.execute(
-        select(Reservation)
-        .where(Reservation.id == reservation_id)
-        .with_for_update()
+        select(Reservation).where(Reservation.id == reservation_id).with_for_update()
     ).scalar_one_or_none()
     if reservation is None:
         raise ReservationNotFound("Reservation not found")
