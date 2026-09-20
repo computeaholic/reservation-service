@@ -49,7 +49,9 @@ jobs:
           python -m pip install '.[dev]'
 
       - name: Black check
-        run: make black-check
+        env:
+          PYTHONWARNINGS: default
+        run: python -m black --check .
 
       - name: Lint
         run: make lint
