@@ -40,4 +40,4 @@ RUN adduser -D appuser \
 
 USER appuser
 
-CMD ["sh", "-c", "python -m reservation_service"]
+CMD ["tail", "-f", "/dev/null"]

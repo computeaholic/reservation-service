@@ -1,24 +1,17 @@
-# Reservation Service Failure Matrix
+# Reservation Failure Matrix
 
-## Inventory
-- [x] Over-reserve prevented
-- [x] Negative inventory prevented
-- [x] Cancel restores inventory exactly once
-
-## Idempotency
-- [x] Replay returns same reservation
-- [x] Replay does not double reserve
-
-## State Transitions
-- [x] Confirm -> Confirm is idempotent
-- [x] Cancel -> Cancel is idempotent
-- [x] Confirm -> Cancel raises
-- [x] Cancel -> Confirm raises
-
-## Errors
-- [x] SKU not found
-- [x] Insufficient inventory
-- [x] Reservation not found
-
-## Concurrency
-- [x] Two concurrent creates cannot exceed total_quantity
+| Scenario | Detection | Result | Retry semantics | Evidence |
+| --- | --- | --- | --- | --- |
+| Equivalent create replay | Service lookup by `idempotency_key` | Returns existing reservation, no second inventory effect | Safe to retry | `tests/test_reservation_service.py::test_create_reservation_replays_equivalent_idempotency_key` |
+| Conflicting idempotency reuse | Service payload comparison against existing reservation | Raises `IdempotencyConflict` | Not retryable without a new key | `tests/test_reservation_service.py::test_create_reservation_rejects_conflicting_idempotency_key_for_sku`, `tests/test_reservation_service.py::test_create_reservation_rejects_conflicting_idempotency_key_for_quantity` |
+| Missing SKU | Zero-row inventory update followed by SKU existence check | Raises `SkuNotFound` | Retry only if inventory is created later | `tests/test_reservation_service.py::test_create_reservation_rejects_missing_sku` |
+| Invalid quantity | Service input validation before any write | Raises `InvalidQuantity` | Not retryable without changing input | `tests/test_reservation_service.py::test_create_reservation_rejects_invalid_quantity` |
+| Insufficient inventory | Conditional inventory update affects zero rows for an existing SKU | Raises `InsufficientInventory` | Retry only after inventory changes | `tests/test_reservation_service.py::test_create_reservation_rejects_insufficient_inventory` |
+| Missing reservation | Locked reservation lookup by primary key | Raises `ReservationNotFound` | Not retryable without a valid ID | `tests/test_reservation_service.py::test_confirm_and_cancel_require_existing_reservation` |
+| Illegal lifecycle transition | Reservation status check after row lock | Raises `IllegalStateTransition` | Same losing transition remains invalid | `tests/test_reservation_service.py::test_confirm_reservation_rejects_canceled`, `tests/test_reservation_service.py::test_cancel_reservation_rejects_confirmed` |
+| Concurrent create contention | Atomic conditional inventory update on `inventory_items` | Exactly one reservation wins when stock is insufficient for both | Losing caller may retry with a different request after inventory changes | `tests/test_reservation_service.py::test_concurrent_create_does_not_overbook` |
+| Concurrent equivalent duplicate-key create | Unique `idempotency_key` plus savepoint-safe retry path | Both callers converge on the same logical reservation outcome | Safe to retry | `tests/test_reservation_service.py::test_concurrent_equivalent_idempotent_create_returns_same_reservation` |
+| Concurrent double cancel | Row-level lock on reservation plus idempotent canceled state | Final status stays canceled and inventory is restored once | Safe to retry | `tests/test_reservation_service.py::test_concurrent_double_cancel_restores_inventory_once` |
+| Concurrent confirm vs cancel | Row-level lock on reservation before transition decision | One terminal transition wins, the other raises `IllegalStateTransition` | Retry repeats the committed winner's semantics | `tests/test_reservation_service.py::test_concurrent_confirm_and_cancel_have_one_deterministic_winner` |
+| Failed create rollback | Transaction scope around create | No reservation row and no inventory effect remain | Safe to retry after correcting the cause | `tests/test_reservation_service.py::test_create_reservation_rolls_back_failed_attempt` |
+| Direct DB invariant violation | PostgreSQL check constraints | Raises `IntegrityError` | Unsupported direct write path | `tests/test_reservation_service.py::test_negative_reserved_inventory_breaks_db_constraint`, `tests/test_reservation_service.py::test_reserved_inventory_cannot_exceed_total_quantity` |

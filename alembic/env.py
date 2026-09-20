@@ -1,16 +1,23 @@
 # mypy: ignore-errors
 # ruff: noqa: I001
 
+import os
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, pool
 
 from infrastructure.db.base import Base
+from infrastructure.db.session import _DEFAULT_DATABASE_URL
 from infrastructure.models.inventory_item import InventoryItem  # noqa: F401
 from infrastructure.models.reservation import Reservation  # noqa: F401
 
 config = context.config
+
+database_url = os.getenv("DATABASE_URL")
+configured_url = config.get_main_option("sqlalchemy.url")
+if database_url and configured_url == _DEFAULT_DATABASE_URL:
+    config.set_main_option("sqlalchemy.url", database_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -33,9 +40,8 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    connectable = create_engine(
+        config.get_main_option("sqlalchemy.url"),
         poolclass=pool.NullPool,
     )
 

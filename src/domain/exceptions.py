@@ -2,6 +2,10 @@ class DomainError(Exception):
     pass
 
 
+class InvalidQuantity(DomainError):
+    pass
+
+
 class ReservationNotFound(DomainError):
     pass
 
@@ -18,13 +22,5 @@ class IllegalStateTransition(DomainError):
     pass
 
 
-class DuplicateIdempotencyKey(DomainError):
-    pass
-
-
-class DatabaseUnavailable(DomainError):
-    pass
-
-
-class TimeoutError(DomainError):
+class IdempotencyConflict(DomainError):
     pass

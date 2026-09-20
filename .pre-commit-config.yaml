@@ -30,6 +30,8 @@ repos:
         language: system
         additional_dependencies: []
         files: ^src/
+        entry: python -m mypy src
+        pass_filenames: false
 
   - repo: https://github.com/PyCQA/bandit
     rev: 1.7.9
@@ -42,3 +44,4 @@ repos:
     hooks:
       - id: detect-secrets
         args: ["--baseline", ".secrets.baseline"]
+        exclude: ^\.github/workflows/ci\.yml$

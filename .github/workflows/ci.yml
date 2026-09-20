@@ -17,17 +17,18 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: reservation_test
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U postgres"
+          --health-cmd="pg_isready -U postgres -d reservation_test"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
     env:
       PYTHONWARNINGS: error
+      DATABASE_URL: postgresql+psycopg://postgres@localhost:5432/reservation_test
 
     steps:
       - name: Checkout
@@ -45,10 +46,23 @@ jobs:
           PYTHONWARNINGS: default
         run: |
           python -m pip install --upgrade pip==24.3.1
-          python -m pip install .[dev]
+          python -m pip install '.[dev]'
+
+      - name: Black check
+        env:
+          PYTHONWARNINGS: default
+        run: python -m black --check .
 
       - name: Lint
         run: make lint
+
+      - name: Detect secrets
+        env:
+          PYTHONWARNINGS: default
+        run: make secret-check
+
+      - name: Validate migrations
+        run: DATABASE_URL=${DATABASE_URL} PYTHONPATH=src python -m pytest tests/test_migrations.py --no-cov
 
       - name: Test with coverage threshold
         run: make test

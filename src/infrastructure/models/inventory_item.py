@@ -20,6 +20,10 @@ class InventoryItem(Base):
             "reserved_quantity >= 0",
             name="ck_inventory_items_reserved_quantity_non_negative",
         ),
+        CheckConstraint(
+            "reserved_quantity <= total_quantity",
+            name="ck_inventory_items_reserved_quantity_lte_total_quantity",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

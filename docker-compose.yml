@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: reservation_test
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5432:5432"
     healthcheck:
@@ -13,7 +13,7 @@ services:
       timeout: 5s
       retries: 10
 
-  app:
+  dev:
     build:
       context: .
       dockerfile: Dockerfile
@@ -21,8 +21,8 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/reservation_test
+      DATABASE_URL: postgresql+psycopg://postgres@postgres:5432/reservation_test
     working_dir: /app
     volumes:
       - .:/app
-    command: ["sh", "-c", "sleep infinity"]
+    command: ["tail", "-f", "/dev/null"]
