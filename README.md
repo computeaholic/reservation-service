@@ -57,10 +57,10 @@ Prerequisites:
 Cold-clone setup:
 
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install --upgrade pip
-python3 -m pip install .[dev]
+python -m pip install --upgrade pip
+python -m pip install '.[dev]'
 make up
 make migrate
 ```

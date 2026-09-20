@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help fmt format lint typecheck precommit validate-hooks test coverage up down migrate rollback scan
+.PHONY: help fmt format black-check lint typecheck precommit validate-hooks secret-check test coverage up down migrate rollback scan
 
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 DATABASE_URL ?= postgresql+psycopg://postgres@localhost:5432/reservation_test
@@ -16,6 +16,9 @@ format: ## Format code and apply safe Ruff fixes
 	$(PYTHON) -m black .
 	$(PYTHON) -m ruff check . --fix
 
+black-check: ## Check formatting with black without modifying files
+	$(PYTHON) -m black --check .
+
 lint: ## Run static quality and security checks
 	$(PYTHON) -m ruff check .
 	$(PYTHON) -m mypy src
@@ -29,6 +32,9 @@ precommit: ## Install pre-commit hooks
 
 validate-hooks: ## Run the validation hooks without branch-policy enforcement
 	PATH="$(PWD)/.venv/bin:$$PATH" SKIP=block-main-branch-commit $(PYTHON) -m pre_commit run --all-files
+
+secret-check: ## Check tracked files against the detect-secrets baseline
+	$(PYTHON) -m pre_commit run detect-secrets --all-files
 
 test: ## Run Postgres-backed test suite with coverage gates
 	DATABASE_URL=$(DATABASE_URL) PYTHONPATH=src $(PYTHON) -m pytest

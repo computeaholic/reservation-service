@@ -22,7 +22,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U postgres"
+          --health-cmd="pg_isready -U postgres -d reservation_test"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -46,10 +46,16 @@ jobs:
           PYTHONWARNINGS: default
         run: |
           python -m pip install --upgrade pip==24.3.1
-          python -m pip install .[dev]
+          python -m pip install '.[dev]'
+
+      - name: Black check
+        run: make black-check
 
       - name: Lint
         run: make lint
+
+      - name: Detect secrets
+        run: make secret-check
 
       - name: Validate migrations
         run: DATABASE_URL=${DATABASE_URL} PYTHONPATH=src python -m pytest tests/test_migrations.py --no-cov
